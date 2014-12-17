@@ -101,7 +101,7 @@ while found_last_article is False:
 
         if date > request_date:
             resultset = {'headline': title, 'author': author, 'date': date}
-            resultList.append(dict(resultset))
+            resultList.append(resultset)
         else:
             found_last_article = True
 
