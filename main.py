@@ -66,48 +66,58 @@ def processdatedata(data):
 
 """Attempt login to Slashdot.org website. Return to login if error occurs"""
 
-browser = instantiatebrowser()
-loginSuccess = False
+def main():
 
-while loginSuccess is False:
-    username = raw_input('Please enter your Slashdot.org username: ')
-    password = raw_input('Please enter your Slashdot.org password: ')
-    browser.open('http://www.slashdot.org')
-    browser.select_form(nr=1)
-    browser.form['unickname'] = username
-    browser.form['upasswd'] = password
-    browser.submit()
-    soup = BeautifulSoup(browser.response().read())
-    if soup.find('div', {'class':'error'}) is None:
-        loginSuccess = True
-        print 'Login successful!'
-    else:
-        print 'Your username or password was entered incorrectly. Please try again.'
+    browser = instantiatebrowser()
+    loginSuccess = False
+    loginAttempts = 0
 
-"""After successful login, get request_date, and scrape site"""
-
-request_date = raw_input('Please enter the date that you would like to retrieve articles from (YYYY-MM-DD): ')
-found_last_article = False
-resultList = []
-
-while found_last_article is False:
-    soup = BeautifulSoup(browser.response().read())
-    articleList = soup.body.find_all('h2', {'class':'story'})
-
-    for article in articleList:
-        title = article.find('span', {'id':re.compile('^title')}).text
-        date = processdatedata(article.parent.find('time').text.split(' ')).strftime('%Y-%m-%d')
-        author = article.parent.find('a', {'rel':'nofollow'}).text
-
-        if date > request_date:
-            resultset = {'headline': title, 'author': author, 'date': date}
-            resultList.append(resultset)
+    while loginSuccess is False and loginAttempts != 3:
+        username = raw_input('Please enter your Slashdot.org username: ')
+        password = raw_input('Please enter your Slashdot.org password: ')
+        browser.open('http://www.slashdot.org')
+        browser.select_form(nr=1)
+        browser.form['unickname'] = username
+        browser.form['upasswd'] = password
+        browser.submit()
+        soup = BeautifulSoup(browser.response().read())
+        if soup.find('div', {'class':'error'}) is None:
+            loginSuccess = True
+            print 'Login successful!'
         else:
-            found_last_article = True
+            loginAttempts += 1
+            if loginAttempts == 3:
+                print "You're and idiot. Don't bother and go home"
+            else:
+                print 'Your username or password was entered incorrectly. Please try again.'
 
-    if found_last_article == False:
-        browser.follow_link(text='Older \xc2\xbb')
+    """After successful login, get request_date, and scrape site"""
+    if loginSuccess == True:
+        request_date = raw_input('Please enter the date that you would like to retrieve articles from (YYYY-MM-DD): ')
+        found_last_article = False
+        resultList = []
 
-"""Output to results to console"""
+        while found_last_article is False:
+            soup = BeautifulSoup(browser.response().read())
+            articleList = soup.body.find_all('h2', {'class':'story'})
 
-print resultList
+            for article in articleList:
+                title = article.find('span', {'id':re.compile('^title')}).text
+                date = processdatedata(article.parent.find('time').text.split(' ')).strftime('%Y-%m-%d')
+                author = article.parent.find('a', {'rel':'nofollow'}).text
+
+                if date > request_date:
+                    resultset = {'headline': title, 'author': author, 'date': date}
+                    resultList.append(dict(resultset))
+                else:
+                    found_last_article = True
+
+            if found_last_article == False:
+                browser.follow_link(text='Older \xc2\xbb')
+
+        """Output to results to console"""
+
+        print resultList
+
+if __name__ == "__main__":
+    main()
